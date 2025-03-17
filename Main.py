@@ -2,10 +2,19 @@ import streamlit as st
 from imports_setup import pdf_support, docx_support
 from summarization_methods import summarize
 from file_handlers import read_file
+from translation_service import translate_text
 
 # Streamlit UI
 st.title("📄 Text Summarizer")
 st.markdown("Enhance your reading experience with AI-powered text summarization.")
+
+# Initialize session state variables
+if 'summary' not in st.session_state:
+    st.session_state.summary = ""
+if 'translated_summary' not in st.session_state:
+    st.session_state.translated_summary = ""
+if 'summary_generated' not in st.session_state:
+    st.session_state.summary_generated = False
 
 # Create tabs for different input methods
 tab1, tab2 = st.tabs(["Text Input", "File Upload"])
@@ -49,14 +58,17 @@ with col1:
 with col2:
     top_n = st.slider("Number of key sentences (extractive only):", 1, 10, 2)
 
+# Summarize button functionality
 if st.button("Summarize"):
     if text_to_summarize.strip():
         with st.spinner("Generating summary..."):
             try:
                 summary = summarize(text_to_summarize, method, top_n)
                 
-                st.subheader("🔹 Summary:")
-                st.write(summary)
+                # Store in session state
+                st.session_state.summary = summary
+                st.session_state.translated_summary = ""  # Reset translated summary
+                st.session_state.summary_generated = True
                 
                 # Calculate reduction percentage
                 original_word_count = len(text_to_summarize.split())
@@ -69,6 +81,22 @@ if st.button("Summarize"):
                 st.info("Error details: " + str(e))
     else:
         st.warning("Please enter some text or upload a file to summarize.")
+
+# Display summary section
+if st.session_state.summary_generated:
+    st.subheader("🔹 Summary:")
+    st.write(st.session_state.summary)
+    
+    # Translation button
+    if st.button("Translate to Tamil"):
+        with st.spinner("Translating to Tamil..."):
+            translated_text = translate_text(st.session_state.summary)
+            st.session_state.translated_summary = translated_text
+    
+    # Display translation if available
+    if st.session_state.translated_summary:
+        st.subheader("🔹 Tamil Translation:")
+        st.write(st.session_state.translated_summary)
 
 st.markdown("---")
 st.info("Breathe In...Breathe Out...")
